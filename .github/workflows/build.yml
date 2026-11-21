@@ -1,0 +1,33 @@
+name: Build 3DS browser
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential git zlib1g-dev cmake
+      - name: Build makerom
+        run: |
+          git clone --depth 1 https://github.com/3DSGuy/Project_CTR.git
+          make -C Project_CTR/makerom -j2
+          cp "$(find Project_CTR/makerom -name makerom -type f | head -1)" /usr/local/bin/makerom
+      - name: Build bannertool
+        run: |
+          git clone --recursive --depth 1 https://github.com/carstene1ns/3ds-bannertool.git
+          cmake -S 3ds-bannertool -B 3ds-bannertool/build
+          cmake --build 3ds-bannertool/build -j2
+          cp "$(find 3ds-bannertool/build -name bannertool -type f | head -1)" /usr/local/bin/bannertool
+      - name: Build app
+        run: make all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser3ds
+          path: |
+            browser3ds.cia
+            browser3ds.3dsx
